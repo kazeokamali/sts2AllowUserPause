@@ -1,0 +1,7 @@
+{
+  "pck_name": "sts2AllowUserPause",
+  "name": "sts2AllowUserPause",
+  "author": "zed",
+  "description": "Pauses combat immediately when the deck screen is opened, so the player can inspect cards or save-quit safely.",
+  "version": "v0.1.0"
+}

@@ -1,0 +1,18 @@
+{
+  "manifest_version": 1,
+  "mod_id": "sts2AllowUserPause",
+  "id": "sts2AllowUserPause",
+  "name": "sts2AllowUserPause",
+  "author": "zed(@yingwunv)",
+  "description": "Pause combat when opening the deck screen.",
+  "version": "v0.1.0",
+  "affects_gameplay": true,
+  "has_pck": true,
+  "has_dll": true,
+  "includes_pck": true,
+  "includes_dll": true,
+  "pck_file": "sts2AllowUserPause.pck",
+  "dll_file": "sts2AllowUserPause.dll",
+  "dependencies": [],
+  "pck_name": "sts2AllowUserPause"
+}
