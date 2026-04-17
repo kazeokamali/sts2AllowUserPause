@@ -7,21 +7,21 @@ using MegaCrit.Sts2.Core.Saves;
 namespace Sts2AllowUserPause.Patches;
 
 [HarmonyPatch]
-public static class LossGracePatch
+public static class DeathGracePatches
 {
     [HarmonyPatch(typeof(CombatManager), nameof(CombatManager.LoseCombat))]
     [HarmonyPostfix]
     public static void LoseCombatPostfix()
     {
-        DeckPauseController.BeginDeathGrace();
+        DeathGraceController.BeginDeathGrace();
     }
 
     [HarmonyPatch(typeof(RunManager), nameof(RunManager.OnEnded))]
     [HarmonyPrefix]
-    public static bool OnEndedPrefix(bool isVictory, ref SerializableRun __result)
+    public static bool RunEndedPrefix(bool isVictory, ref SerializableRun __result)
     {
         SerializableRun? replacement = __result;
-        if (!DeckPauseController.TrySuppressRunEnd(isVictory, ref replacement) || replacement == null)
+        if (!DeathGraceController.TryDeferRunEnd(isVictory, ref replacement) || replacement == null)
         {
             return true;
         }
@@ -34,6 +34,20 @@ public static class LossGracePatch
     [HarmonyPrefix]
     public static bool ShowGameOverScreenPrefix()
     {
-        return !DeckPauseController.ShouldSuppressGameOverScreen();
+        return !DeathGraceController.ShouldSuppressGameOverScreen();
+    }
+
+    [HarmonyPatch(typeof(NGame), nameof(NGame.ReturnToMainMenu))]
+    [HarmonyPrefix]
+    public static void ReturnToMainMenuPrefix()
+    {
+        DeathGraceController.PrepareForMainMenuReturn();
+    }
+
+    [HarmonyPatch(typeof(RunManager), nameof(RunManager.CleanUp))]
+    [HarmonyPrefix]
+    public static void CleanUpPrefix()
+    {
+        DeathGraceController.ClearState();
     }
 }

@@ -13,21 +13,21 @@ using MegaCrit.Sts2.Core.Saves.Managers;
 
 namespace Sts2AllowUserPause;
 
-internal static class DeckPauseController
+internal static class DeathGraceController
 {
-    private sealed record PauseSessionSnapshot(
+    private sealed record HardPauseSnapshot(
         bool TreeWasPaused,
         Node.ProcessModeEnum HotkeyManagerProcessMode,
         bool CombatWasPaused,
         bool ActionExecutorWasPaused);
 
-    private static PauseSessionSnapshot? ActiveSession;
+    private static HardPauseSnapshot? ActiveHardPause;
     private static bool PendingDeathGrace;
     private static bool FinalizingDeathGrace;
-    private static DeathDecisionPopup? ActiveDeathPopup;
+    private static DeathDecisionPopup? ActiveDecisionPopup;
     private static string? CachedFloorStartSaveJson;
 
-    private static bool IsDeathGraceSupportedForCurrentRun()
+    private static bool IsSupportedRun()
     {
         RunManager? runManager = RunManager.Instance;
         return runManager != null && runManager.IsInProgress && runManager.IsSinglePlayerOrFakeMultiplayer;
@@ -35,45 +35,43 @@ internal static class DeckPauseController
 
     private static bool IsDeathGraceActive()
     {
-        return IsDeathGraceSupportedForCurrentRun() && PendingDeathGrace && !FinalizingDeathGrace;
+        return IsSupportedRun() && PendingDeathGrace && !FinalizingDeathGrace;
     }
 
     public static void BeginDeathGrace()
     {
-        if (PendingDeathGrace || FinalizingDeathGrace)
-        {
-            return;
-        }
-
-        if (!IsDeathGraceSupportedForCurrentRun())
+        if (PendingDeathGrace || FinalizingDeathGrace || !IsSupportedRun())
         {
             return;
         }
 
         CaptureFloorStartSaveSnapshot();
-        PendingDeathGrace = true;
-        if (!EnsureSessionStarted())
+        if (!EnsureHardPauseStarted())
         {
+            CachedFloorStartSaveJson = null;
+            Log.Warn("[Sts2AllowUserPause] Failed to start the death grace hard pause. Allowing the normal loss flow.");
             return;
         }
+
+        PendingDeathGrace = true;
 
         // Abandon-run confirmation buttons clear the modal container in the same
         // release callback that ultimately triggers this death-grace flow. Delay
         // popup creation until those UI callbacks finish so the decision popup
         // does not get cleared immediately after being added.
-        Callable.From(ShowDeathDecisionPopup).CallDeferred();
-        Log.Info("[Sts2AllowUserPause] Loss grace window opened.");
+        Callable.From(ShowDecisionPopup).CallDeferred();
+        Log.Info("[Sts2AllowUserPause] Death grace window opened.");
     }
 
-    public static bool TrySuppressRunEnd(bool isVictory, ref SerializableRun? serializableRun)
+    public static bool TryDeferRunEnd(bool isVictory, ref SerializableRun? serializableRun)
     {
-        if (!IsDeathGraceSupportedForCurrentRun() || !PendingDeathGrace || FinalizingDeathGrace || isVictory)
+        if (!IsSupportedRun() || !PendingDeathGrace || FinalizingDeathGrace || isVictory)
         {
             return false;
         }
 
         serializableRun = RunManager.Instance.ToSave(null);
-        Log.Info("[Sts2AllowUserPause] Delayed RunManager.OnEnded(false) until hard pause ends.");
+        Log.Info("[Sts2AllowUserPause] Delayed RunManager.OnEnded(false) until the hard pause ends.");
         return true;
     }
 
@@ -82,32 +80,27 @@ internal static class DeckPauseController
         return IsDeathGraceActive();
     }
 
-    public static void PrepareForRunExit()
+    public static void PrepareForMainMenuReturn()
     {
-        PersistFloorStartSaveSnapshotIfNeeded();
-        CloseDeathDecisionPopup();
+        RestoreFloorStartSaveBeforeMenuReturn();
+        CloseDecisionPopup();
         PendingDeathGrace = false;
         FinalizingDeathGrace = false;
-        EndSession(finalizePendingDeathGrace: false, resumeGameplay: false);
+        EndHardPause(finalizePendingDeathGrace: false, resumeGameplay: false);
     }
 
-    public static void Reset()
+    public static void ClearState()
     {
-        CloseDeathDecisionPopup();
+        CloseDecisionPopup();
         PendingDeathGrace = false;
         FinalizingDeathGrace = false;
         CachedFloorStartSaveJson = null;
-        EndSession(finalizePendingDeathGrace: false, resumeGameplay: false);
+        EndHardPause(finalizePendingDeathGrace: false, resumeGameplay: false);
     }
 
-    public static bool ShouldBlockPauseMenuDuringDeathGrace()
+    private static bool EnsureHardPauseStarted()
     {
-        return IsDeathGraceActive();
-    }
-
-    private static bool EnsureSessionStarted()
-    {
-        if (ActiveSession != null)
+        if (ActiveHardPause != null)
         {
             return true;
         }
@@ -120,7 +113,7 @@ internal static class DeckPauseController
             return false;
         }
 
-        ActiveSession = new PauseSessionSnapshot(
+        ActiveHardPause = new HardPauseSnapshot(
             TreeWasPaused: tree.Paused,
             HotkeyManagerProcessMode: hotkeyManager.ProcessMode,
             CombatWasPaused: CombatManager.Instance.IsPaused,
@@ -135,16 +128,16 @@ internal static class DeckPauseController
         return true;
     }
 
-    private static void EndSession(bool finalizePendingDeathGrace, bool resumeGameplay = true)
+    private static void EndHardPause(bool finalizePendingDeathGrace, bool resumeGameplay = true)
     {
-        PauseSessionSnapshot? snapshot = ActiveSession;
+        HardPauseSnapshot? snapshot = ActiveHardPause;
         if (snapshot == null)
         {
             return;
         }
 
-        ActiveSession = null;
-        RestoreSnapshot(snapshot, resumeGameplay);
+        ActiveHardPause = null;
+        RestoreHardPauseSnapshot(snapshot, resumeGameplay);
 
         Log.Info("[Sts2AllowUserPause] Hard pause session ended.");
 
@@ -154,7 +147,7 @@ internal static class DeckPauseController
         }
     }
 
-    private static void RestoreSnapshot(PauseSessionSnapshot snapshot, bool resumeGameplay)
+    private static void RestoreHardPauseSnapshot(HardPauseSnapshot snapshot, bool resumeGameplay)
     {
         NGame? game = NGame.Instance;
         NHotkeyManager? hotkeyManager = NHotkeyManager.Instance;
@@ -206,7 +199,7 @@ internal static class DeckPauseController
         {
             SerializableRun serializableRun = RunManager.Instance.OnEnded(isVictory: false);
             NRun.Instance.ShowGameOverScreen(serializableRun);
-            Log.Info("[Sts2AllowUserPause] Finalized delayed loss flow.");
+            Log.Info("[Sts2AllowUserPause] Finalized the delayed loss flow.");
         }
         finally
         {
@@ -215,7 +208,7 @@ internal static class DeckPauseController
         }
     }
 
-    private static void ShowDeathDecisionPopup()
+    private static void ShowDecisionPopup()
     {
         if (!IsDeathGraceActive())
         {
@@ -223,7 +216,7 @@ internal static class DeckPauseController
         }
 
         NModalContainer? modalContainer = NModalContainer.Instance;
-        if (ActiveDeathPopup != null || modalContainer == null)
+        if (ActiveDecisionPopup != null || modalContainer == null)
         {
             return;
         }
@@ -234,38 +227,38 @@ internal static class DeckPauseController
         modalContainer.Clear();
         NRun.Instance?.GlobalUi.CapstoneContainer.DisableBackstopInstantly();
 
-        DeathDecisionPopup popup = DeathDecisionPopup.Create(OnConfirmDeathRequested, OnReturnToFloorStartRequested, ClearDeathDecisionPopupReference);
-        ActiveDeathPopup = popup;
+        DeathDecisionPopup popup = DeathDecisionPopup.Create(ConfirmDeath, ReturnToFloorStart, ClearDecisionPopupReference);
+        ActiveDecisionPopup = popup;
         modalContainer.Add(popup);
         Log.Info("[Sts2AllowUserPause] Death decision popup displayed.");
     }
 
-    private static void CloseDeathDecisionPopup()
+    private static void CloseDecisionPopup()
     {
-        if (ActiveDeathPopup == null)
+        if (ActiveDecisionPopup == null)
         {
             return;
         }
 
-        if (GodotObject.IsInstanceValid(ActiveDeathPopup))
+        if (GodotObject.IsInstanceValid(ActiveDecisionPopup))
         {
-            ActiveDeathPopup.ClosePopup();
+            ActiveDecisionPopup.ClosePopup();
         }
 
-        ActiveDeathPopup = null;
+        ActiveDecisionPopup = null;
     }
 
-    private static void ClearDeathDecisionPopupReference()
+    private static void ClearDecisionPopupReference()
     {
-        ActiveDeathPopup = null;
+        ActiveDecisionPopup = null;
     }
 
-    private static void OnConfirmDeathRequested()
+    private static void ConfirmDeath()
     {
-        EndSession(finalizePendingDeathGrace: true, resumeGameplay: false);
+        EndHardPause(finalizePendingDeathGrace: true, resumeGameplay: false);
     }
 
-    private static void OnReturnToFloorStartRequested()
+    private static void ReturnToFloorStart()
     {
         TaskHelper.RunSafely(ReturnToFloorStartAsync());
     }
@@ -276,13 +269,13 @@ internal static class DeckPauseController
         if (serializableRun == null || NGame.Instance == null)
         {
             Log.Error("[Sts2AllowUserPause] Return-to-floor-start requested, but the floor-start snapshot could not be loaded. Falling back to death resolution.");
-            EndSession(finalizePendingDeathGrace: true, resumeGameplay: false);
+            EndHardPause(finalizePendingDeathGrace: true, resumeGameplay: false);
             return;
         }
 
         RunState runState = RunState.FromSerializable(serializableRun);
 
-        PrepareForRunExit();
+        PrepareForMainMenuReturn();
         NRun.Instance?.RunMusicController?.StopMusic();
 
         await NGame.Instance.Transition.FadeOut(0.8f, runState.Players[0].Character.CharacterSelectTransitionPath);
@@ -301,12 +294,12 @@ internal static class DeckPauseController
         if (!readRunSaveResult.Success || readRunSaveResult.SaveData == null)
         {
             CachedFloorStartSaveJson = null;
-            Log.Warn("[Sts2AllowUserPause] Failed to capture floor-start save snapshot from current_run.save.");
+            Log.Warn("[Sts2AllowUserPause] Failed to capture the floor-start save snapshot from current_run.save.");
             return;
         }
 
         CachedFloorStartSaveJson = JsonSerializationUtility.ToJson(readRunSaveResult.SaveData);
-        Log.Info("[Sts2AllowUserPause] Captured floor-start save snapshot for death grace.");
+        Log.Info("[Sts2AllowUserPause] Captured the floor-start save snapshot for death grace.");
     }
 
     private static SerializableRun? LoadFloorStartSaveSnapshot()
@@ -319,7 +312,7 @@ internal static class DeckPauseController
                 return cachedReadResult.SaveData;
             }
 
-            Log.Warn("[Sts2AllowUserPause] Cached floor-start save snapshot was invalid. Falling back to current_run.save.");
+            Log.Warn("[Sts2AllowUserPause] The cached floor-start save snapshot was invalid. Falling back to current_run.save.");
         }
 
         ReadSaveResult<SerializableRun> diskReadResult = SaveManager.Instance.LoadRunSave();
@@ -331,7 +324,7 @@ internal static class DeckPauseController
         return null;
     }
 
-    private static void PersistFloorStartSaveSnapshotIfNeeded()
+    private static void RestoreFloorStartSaveBeforeMenuReturn()
     {
         if (!PendingDeathGrace || FinalizingDeathGrace || string.IsNullOrWhiteSpace(CachedFloorStartSaveJson))
         {

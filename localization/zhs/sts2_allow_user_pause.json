@@ -1,0 +1,6 @@
+{
+  "DEATH_DECISION_POPUP.title": "死亡了？",
+  "DEATH_DECISION_POPUP.body": "要从本层开头重新开始，还是确认死亡并返回主菜单？",
+  "DEATH_DECISION_POPUP.confirm_death": "不挣扎了",
+  "DEATH_DECISION_POPUP.return_to_floor_start": "本层SL"
+}

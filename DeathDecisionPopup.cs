@@ -3,6 +3,7 @@ using Godot;
 using MegaCrit.Sts2.Core.Assets;
 using MegaCrit.Sts2.Core.ControllerInput;
 using MegaCrit.Sts2.Core.Helpers;
+using MegaCrit.Sts2.Core.Localization;
 using MegaCrit.Sts2.Core.Nodes.CommonUi;
 using MegaCrit.Sts2.Core.Nodes.GodotExtensions;
 using MegaCrit.Sts2.Core.Nodes.Screens.ScreenContext;
@@ -11,14 +12,19 @@ namespace Sts2AllowUserPause;
 
 public partial class DeathDecisionPopup : Control, IScreenContext
 {
-    private const string VerticalPopupWithIconScenePath = "res://userTscn/vertical_popup_with_icon.tscn";
-    private const string ConfirmDeathCustomIconPath = "res://userTscn/Icon/YbtnIcon.png";
-    private const string ReturnToFloorStartCustomIconPath = "res://userTscn/Icon/NbtnIcon.png";
+    private const string PopupScenePath = "res://userTscn/vertical_popup_with_icon.tscn";
+    private const string ConfirmDeathIconPath = "res://userTscn/Icon/YbtnIcon.png";
+    private const string ReturnToFloorStartIconPath = "res://userTscn/Icon/NbtnIcon.png";
     private const float ButtonIconGap = 6f;
+    private static readonly LocString PopupTitleLoc = new("sts2_allow_user_pause", "DEATH_DECISION_POPUP.title");
+    private static readonly LocString PopupBodyLoc = new("sts2_allow_user_pause", "DEATH_DECISION_POPUP.body");
+    private static readonly LocString ConfirmDeathButtonTextLoc = new("sts2_allow_user_pause", "DEATH_DECISION_POPUP.confirm_death");
+    private static readonly LocString ReturnToFloorStartButtonTextLoc = new("sts2_allow_user_pause", "DEATH_DECISION_POPUP.return_to_floor_start");
+
     private static readonly string ConfirmDeathFallbackIconPath = ImageHelper.GetImagePath("ui/emote/skull.png");
     private static readonly string ReturnToFloorStartFallbackIconPath = ImageHelper.GetImagePath("ui/main_menu/submenu_load.png");
 
-    private readonly Action _confirmAction;
+    private readonly Action _confirmDeathAction;
     private readonly Action _returnToFloorStartAction;
     private readonly Action? _closedAction;
 
@@ -28,9 +34,9 @@ public partial class DeathDecisionPopup : Control, IScreenContext
 
     public Control? DefaultFocusedControl => _verticalPopup?.YesButton;
 
-    private DeathDecisionPopup(Action confirmAction, Action returnToFloorStartAction, Action? closedAction)
+    private DeathDecisionPopup(Action confirmDeathAction, Action returnToFloorStartAction, Action? closedAction)
     {
-        _confirmAction = confirmAction;
+        _confirmDeathAction = confirmDeathAction;
         _returnToFloorStartAction = returnToFloorStartAction;
         _closedAction = closedAction;
         ProcessMode = ProcessModeEnum.WhenPaused;
@@ -38,14 +44,14 @@ public partial class DeathDecisionPopup : Control, IScreenContext
         SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
     }
 
-    public static DeathDecisionPopup Create(Action confirmAction, Action returnToFloorStartAction, Action? closedAction = null)
+    public static DeathDecisionPopup Create(Action confirmDeathAction, Action returnToFloorStartAction, Action? closedAction = null)
     {
-        return new DeathDecisionPopup(confirmAction, returnToFloorStartAction, closedAction);
+        return new DeathDecisionPopup(confirmDeathAction, returnToFloorStartAction, closedAction);
     }
 
     public override void _Ready()
     {
-        NVerticalPopup popupVisual = ResourceLoader.Load<PackedScene>(VerticalPopupWithIconScenePath).Instantiate<NVerticalPopup>(PackedScene.GenEditState.Disabled);
+        NVerticalPopup popupVisual = ResourceLoader.Load<PackedScene>(PopupScenePath).Instantiate<NVerticalPopup>(PackedScene.GenEditState.Disabled);
         popupVisual.ProcessMode = ProcessModeEnum.Inherit;
         this.AddChildSafely(popupVisual);
 
@@ -53,15 +59,9 @@ public partial class DeathDecisionPopup : Control, IScreenContext
         _yesButtonIcon = popupVisual.GetNodeOrNull<TextureRect>("YesButtonIcon");
         _noButtonIcon = popupVisual.GetNodeOrNull<TextureRect>("NoButtonIcon");
 
-        _verticalPopup.SetText(
-            "Died?",
-            "重新在本层开始 or 确认死亡回菜单"
-        );
-        popupVisual.GetNodeOrNull<CanvasItem>("Description")?.Show();
-        _verticalPopup.InitYesButton(new MegaCrit.Sts2.Core.Localization.LocString("main_menu_ui", "GENERIC_POPUP.confirm"), OnConfirmPressed);
-        _verticalPopup.InitNoButton(new MegaCrit.Sts2.Core.Localization.LocString("main_menu_ui", "GENERIC_POPUP.cancel"), OnReturnToFloorStartPressed);
-        _verticalPopup.YesButton.SetText("不挣扎了");
-        _verticalPopup.NoButton.SetText("本层SL");
+        _verticalPopup.InitYesButton(new LocString("main_menu_ui", "GENERIC_POPUP.confirm"), OnConfirmPressed);
+        _verticalPopup.InitNoButton(new LocString("main_menu_ui", "GENERIC_POPUP.cancel"), OnReturnToFloorStartPressed);
+        ApplyLocalizedText();
 
         _verticalPopup.YesButton.FocusMode = FocusModeEnum.All;
         _verticalPopup.NoButton.FocusMode = FocusModeEnum.All;
@@ -69,18 +69,20 @@ public partial class DeathDecisionPopup : Control, IScreenContext
         ConfigureButtonIcon(
             _yesButtonIcon,
             _verticalPopup.YesButton,
-            LoadIconTexture(ConfirmDeathCustomIconPath) ?? PreloadManager.Cache.GetTexture2D(ConfirmDeathFallbackIconPath));
+            LoadIconTexture(ConfirmDeathIconPath) ?? PreloadManager.Cache.GetTexture2D(ConfirmDeathFallbackIconPath));
         ConfigureButtonIcon(
             _noButtonIcon,
             _verticalPopup.NoButton,
-            LoadIconTexture(ReturnToFloorStartCustomIconPath) ?? PreloadManager.Cache.GetTexture2D(ReturnToFloorStartFallbackIconPath));
+            LoadIconTexture(ReturnToFloorStartIconPath) ?? PreloadManager.Cache.GetTexture2D(ReturnToFloorStartFallbackIconPath));
 
         RegisterBlockingHotkeys();
+        LocString.SubscribeToLocaleChange(ApplyLocalizedText);
         Callable.From(() => _verticalPopup.YesButton.GrabFocus()).CallDeferred();
     }
 
     public override void _ExitTree()
     {
+        LocString.UnsubscribeToLocaleChange(ApplyLocalizedText);
         UnregisterBlockingHotkeys();
         _verticalPopup?.DisconnectSignals();
         _verticalPopup?.DisconnectHotkeys();
@@ -136,12 +138,24 @@ public partial class DeathDecisionPopup : Control, IScreenContext
 
     private void OnConfirmPressed(NButton _)
     {
-        Callable.From(_confirmAction).CallDeferred();
+        Callable.From(_confirmDeathAction).CallDeferred();
     }
 
     private void OnReturnToFloorStartPressed(NButton _)
     {
         Callable.From(_returnToFloorStartAction).CallDeferred();
+    }
+
+    private void ApplyLocalizedText()
+    {
+        if (_verticalPopup == null)
+        {
+            return;
+        }
+
+        _verticalPopup.SetText(PopupTitleLoc, PopupBodyLoc);
+        _verticalPopup.YesButton.SetText(ConfirmDeathButtonTextLoc.GetFormattedText());
+        _verticalPopup.NoButton.SetText(ReturnToFloorStartButtonTextLoc.GetFormattedText());
     }
 
     private static void ConfigureButtonIcon(TextureRect? iconNode, Control? button, Texture2D? texture)
