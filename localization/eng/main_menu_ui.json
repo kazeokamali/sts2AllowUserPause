@@ -1,0 +1,6 @@
+{
+  "STS2_ALLOW_USER_PAUSE.DEATH_DECISION_POPUP.title": "Died?",
+  "STS2_ALLOW_USER_PAUSE.DEATH_DECISION_POPUP.body": "Restart from the beginning of this floor, or confirm death and return to the main menu?",
+  "STS2_ALLOW_USER_PAUSE.DEATH_DECISION_POPUP.confirm_death": "Accept death",
+  "STS2_ALLOW_USER_PAUSE.DEATH_DECISION_POPUP.return_to_floor_start": "Restart floor"
+}

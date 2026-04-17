@@ -16,10 +16,10 @@ public partial class DeathDecisionPopup : Control, IScreenContext
     private const string ConfirmDeathIconPath = "res://userTscn/Icon/YbtnIcon.png";
     private const string ReturnToFloorStartIconPath = "res://userTscn/Icon/NbtnIcon.png";
     private const float ButtonIconGap = 6f;
-    private static readonly LocString PopupTitleLoc = new("sts2_allow_user_pause", "DEATH_DECISION_POPUP.title");
-    private static readonly LocString PopupBodyLoc = new("sts2_allow_user_pause", "DEATH_DECISION_POPUP.body");
-    private static readonly LocString ConfirmDeathButtonTextLoc = new("sts2_allow_user_pause", "DEATH_DECISION_POPUP.confirm_death");
-    private static readonly LocString ReturnToFloorStartButtonTextLoc = new("sts2_allow_user_pause", "DEATH_DECISION_POPUP.return_to_floor_start");
+    private static readonly LocString PopupTitleLoc = new("main_menu_ui", "STS2_ALLOW_USER_PAUSE.DEATH_DECISION_POPUP.title");
+    private static readonly LocString PopupBodyLoc = new("main_menu_ui", "STS2_ALLOW_USER_PAUSE.DEATH_DECISION_POPUP.body");
+    private static readonly LocString ConfirmDeathButtonTextLoc = new("main_menu_ui", "STS2_ALLOW_USER_PAUSE.DEATH_DECISION_POPUP.confirm_death");
+    private static readonly LocString ReturnToFloorStartButtonTextLoc = new("main_menu_ui", "STS2_ALLOW_USER_PAUSE.DEATH_DECISION_POPUP.return_to_floor_start");
 
     private static readonly string ConfirmDeathFallbackIconPath = ImageHelper.GetImagePath("ui/emote/skull.png");
     private static readonly string ReturnToFloorStartFallbackIconPath = ImageHelper.GetImagePath("ui/main_menu/submenu_load.png");

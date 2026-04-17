@@ -1,0 +1,6 @@
+{
+  "STS2_ALLOW_USER_PAUSE.DEATH_DECISION_POPUP.title": "\u6b7b\u4ea1\u4e86\uff1f",
+  "STS2_ALLOW_USER_PAUSE.DEATH_DECISION_POPUP.body": "\u8981\u4ece\u672c\u5c42\u5f00\u5934\u91cd\u65b0\u5f00\u59cb\uff0c\u8fd8\u662f\u786e\u8ba4\u6b7b\u4ea1\u5e76\u8fd4\u56de\u4e3b\u83dc\u5355\uff1f",
+  "STS2_ALLOW_USER_PAUSE.DEATH_DECISION_POPUP.confirm_death": "\u4e0d\u6323\u624e\u4e86",
+  "STS2_ALLOW_USER_PAUSE.DEATH_DECISION_POPUP.return_to_floor_start": "\u672c\u5c42SL"
+}

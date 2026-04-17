@@ -1,6 +1,0 @@
-{
-  "DEATH_DECISION_POPUP.title": "Died?",
-  "DEATH_DECISION_POPUP.body": "Restart from the beginning of this floor, or confirm death and return to the main menu?",
-  "DEATH_DECISION_POPUP.confirm_death": "Accept death",
-  "DEATH_DECISION_POPUP.return_to_floor_start": "Restart floor"
-}
