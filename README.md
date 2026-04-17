@@ -1,4 +1,4 @@
-# sts2AllowUserPause
+# sts2AllowUserPause 杀戮尖塔2防止死亡直接结算Mod
 
 一个用于 **Slay the Spire 2** 的小型 Mod。
 
