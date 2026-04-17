@@ -1,0 +1,18 @@
+{
+  "manifest_version": 1,
+  "mod_id": "sts2AllowUserPause",
+  "id": "sts2AllowUserPause",
+  "name": "sts2AllowUserPause",
+  "author": "zed(@yingwunv)",
+  "description": "Adds a death decision popup in singleplayer and disables itself in multiplayer.",
+  "version": "v1.0.1",
+  "affects_gameplay": false,
+  "has_pck": true,
+  "has_dll": true,
+  "includes_pck": true,
+  "includes_dll": true,
+  "pck_file": "sts2AllowUserPause.pck",
+  "dll_file": "sts2AllowUserPause.dll",
+  "dependencies": [],
+  "pck_name": "sts2AllowUserPause"
+}

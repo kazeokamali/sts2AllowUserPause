@@ -1,0 +1,126 @@
+<Project Sdk="Godot.NET.Sdk/4.5.1">
+    <PropertyGroup>
+        <TargetFramework>net9.0</TargetFramework>
+        <ImplicitUsings>true</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <NoWarn>$(NoWarn);STS002</NoWarn>
+        <ModId Condition="'$(ModId)' == ''">sts2AllowUserPause</ModId>
+        <BuildPck Condition="'$(BuildPck)' == ''">true</BuildPck>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <IsWindows>false</IsWindows>
+        <IsLinux>false</IsLinux>
+        <IsOSX>false</IsOSX>
+        <IsWindows Condition="$([MSBuild]::IsOSPlatform('Windows'))">true</IsWindows>
+        <IsLinux Condition="$([MSBuild]::IsOSPlatform('Linux'))">true</IsLinux>
+        <IsOSX Condition="$([MSBuild]::IsOSPlatform('OSX'))">true</IsOSX>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(IsWindows)' == 'true'">
+        <SteamRoot Condition="'$(SteamRoot)' == ''">$(registry:HKEY_CURRENT_USER\Software\Valve\Steam@SteamPath)</SteamRoot>
+        <SteamLibraryPath Condition="'$(SteamLibraryPath)' == '' and '$(SteamRoot)' != ''">$(SteamRoot)\steamapps</SteamLibraryPath>
+        <LocalDevSteamInstallPath Condition="'$(LocalDevSteamInstallPath)' == ''">D:\SteamLibrary\steamapps\common\Slay the Spire 2</LocalDevSteamInstallPath>
+        <SteamInstallPath Condition="'$(SteamInstallPath)' == '' and Exists('$(LocalDevSteamInstallPath)')">$(LocalDevSteamInstallPath)</SteamInstallPath>
+        <SteamInstallPath Condition="'$(SteamInstallPath)' == ''">$(SteamLibraryPath)/common/Slay the Spire 2</SteamInstallPath>
+        <LocalDevSts2PathV0103 Condition="'$(LocalDevSts2PathV0103)' == ''">D:\2026\STS2\0.103</LocalDevSts2PathV0103>
+        <LocalDevSts2PathV0101 Condition="'$(LocalDevSts2PathV0101)' == ''">D:\2026\STS2\0.101</LocalDevSts2PathV0101>
+        <LocalDevSts2PathV099 Condition="'$(LocalDevSts2PathV099)' == ''">C:\BrowserDownload\CT\else\sts\v0.99</LocalDevSts2PathV099>
+        <LocalDevSts2PathLegacy Condition="'$(LocalDevSts2PathLegacy)' == ''">C:\BrowserDownload\CT\else\sts\Slay the Spire2</LocalDevSts2PathLegacy>
+        <Sts2Path Condition="'$(Sts2Path)' == '' and Exists('$(LocalDevSts2PathV0103)')">$(LocalDevSts2PathV0103)</Sts2Path>
+        <Sts2Path Condition="'$(Sts2Path)' == '' and Exists('$(LocalDevSts2PathV0101)')">$(LocalDevSts2PathV0101)</Sts2Path>
+        <Sts2Path Condition="'$(Sts2Path)' == '' and Exists('$(LocalDevSts2PathV099)')">$(LocalDevSts2PathV099)</Sts2Path>
+        <Sts2Path Condition="'$(Sts2Path)' == '' and Exists('$(LocalDevSts2PathLegacy)')">$(LocalDevSts2PathLegacy)</Sts2Path>
+        <Sts2Path Condition="'$(Sts2Path)' == ''">$(SteamInstallPath)</Sts2Path>
+        <Sts2DataDir Condition="'$(Sts2DataDir)' == '' and Exists('$(Sts2Path)/data_sts2_windows_x86_64/sts2.dll')">$(Sts2Path)/data_sts2_windows_x86_64</Sts2DataDir>
+        <Sts2DataDir Condition="'$(Sts2DataDir)' == '' and Exists('$(Sts2Path)/.godot/mono/temp/bin/Debug/sts2.dll')">$(Sts2Path)/.godot/mono/temp/bin/Debug</Sts2DataDir>
+        <Sts2DataDir Condition="'$(Sts2DataDir)' == ''">$(SteamInstallPath)/data_sts2_windows_x86_64</Sts2DataDir>
+        <LocalDevGodotPath Condition="'$(LocalDevGodotPath)' == ''">D:\2026\Godot_v4.5.1-stable_mono_win64\Godot_v4.5.1-stable_mono_win64.exe</LocalDevGodotPath>
+        <GodotPath Condition="'$(GodotPath)' == '' and Exists('$(LocalDevGodotPath)')">$(LocalDevGodotPath)</GodotPath>
+        <GodotPath Condition="'$(GodotPath)' == ''">C:\megadot\MegaDot_v4.5.1-stable_mono_win64.exe</GodotPath>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(IsLinux)' == 'true'">
+        <SteamLibraryPath Condition="'$(SteamLibraryPath)' == ''">$(HOME)/.local/share/Steam/steamapps</SteamLibraryPath>
+        <Sts2Path Condition="'$(Sts2Path)' == ''">$(SteamLibraryPath)/common/Slay the Spire 2</Sts2Path>
+        <Sts2DataDir Condition="'$(Sts2DataDir)' == ''">$(Sts2Path)/data_sts2_linuxbsd_x86_64</Sts2DataDir>
+        <GodotPath Condition="'$(GodotPath)' == ''">$(HOME)/Documents/MTSII/Megadot/MegaDot.x86_64</GodotPath>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <ModsOutputDir Condition="'$(ModsOutputDir)' == ''">$(SteamInstallPath)/mods/$(ModId)</ModsOutputDir>
+        <GodotInstallDir Condition="'$(GodotPath)' != '' and Exists('$(GodotPath)')">$([System.IO.Path]::GetDirectoryName('$(GodotPath)'))</GodotInstallDir>
+        <GodotModsOutputDir Condition="'$(GodotModsOutputDir)' == '' and '$(GodotInstallDir)' != ''">$(GodotInstallDir)/mods/$(ModId)</GodotModsOutputDir>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <Reference Include="0Harmony">
+            <HintPath>$(Sts2DataDir)/0Harmony.dll</HintPath>
+        </Reference>
+        <Reference Include="sts2">
+            <HintPath>$(Sts2DataDir)/sts2.dll</HintPath>
+            <Publicize>False</Publicize>
+        </Reference>
+
+        <PackageReference Include="Alchyr.Sts2.ModAnalyzers" Version="0.0.1" />
+        <PackageReference Include="BepInEx.AssemblyPublicizer.MSBuild" Version="0.4.3">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Content Include="$(ModId).json" />
+        <Content Include="mod_manifest.json" />
+        <Content Include="project.godot" />
+        <Content Include="README_zh.md" />
+        <Content Include="tools\pack_pck.gd" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <AdditionalFiles Include="localization\**\*.json" />
+    </ItemGroup>
+
+    <Target Name="EnsureModsOutputDir" BeforeTargets="CopyToModsFolderOnBuild;CopyManifestsToModsFolderOnBuild;PackPckOnBuild">
+        <MakeDir Directories="$(ModsOutputDir)" />
+    </Target>
+
+    <Target Name="CopyToModsFolderOnBuild" AfterTargets="PostBuildEvent">
+        <Message Text="Copying .dll to mods folder." Importance="high" />
+        <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(ModsOutputDir)/" />
+    </Target>
+
+    <Target Name="CopyManifestsToModsFolderOnBuild" AfterTargets="PostBuildEvent">
+        <Message Text="Copying mod manifests to mods folder." Importance="high" />
+        <ItemGroup>
+            <ManifestFiles Include="$(ModId).json" />
+        </ItemGroup>
+        <Copy SourceFiles="@(ManifestFiles)" DestinationFolder="$(ModsOutputDir)/" SkipUnchangedFiles="true" />
+    </Target>
+
+    <Target Name="RemoveLegacyManifestFromModsFolder" AfterTargets="CopyManifestsToModsFolderOnBuild">
+        <Delete Files="$(ModsOutputDir)/mod_manifest.json" />
+    </Target>
+
+    <Target Name="PackPckOnBuild" AfterTargets="PostBuildEvent" Condition="'$(BuildPck)' == 'true' and '$(GodotPath)' != '' and Exists('$(GodotPath)')">
+        <Message Text="Packing mod .pck to mods folder" Importance="high" />
+        <Exec Command="&quot;$(GodotPath)&quot; --headless --path &quot;$(MSBuildProjectDirectory)&quot; --script &quot;$(MSBuildProjectDirectory)/tools/pack_pck.gd&quot; -- &quot;$(ModsOutputDir)/$(ModId).pck&quot; &quot;$(MSBuildProjectDirectory)/mod_manifest.json&quot;" />
+    </Target>
+
+    <Target Name="PackPckSkipped" AfterTargets="PostBuildEvent" Condition="'$(BuildPck)' != 'true' or '$(GodotPath)' == '' or !Exists('$(GodotPath)')">
+        <Message Text="Skipping .pck packing (BuildPck=false or GodotPath is not configured)." Importance="high" />
+    </Target>
+
+    <Target Name="MirrorToGodotExeMods" AfterTargets="PackPckOnBuild;PackPckSkipped" Condition="'$(GodotModsOutputDir)' != '' and '$(GodotModsOutputDir)' != '$(ModsOutputDir)'">
+        <MakeDir Directories="$(GodotModsOutputDir)" />
+        <Message Text="Mirroring mod artifacts to Godot executable mods directory." Importance="high" />
+        <ItemGroup>
+            <MirrorFiles Include="$(ModsOutputDir)/$(ModId).dll" />
+            <MirrorFiles Include="$(ModsOutputDir)/$(ModId).json" />
+            <MirrorFiles Include="$(ModsOutputDir)/$(ModId).pck" Condition="Exists('$(ModsOutputDir)/$(ModId).pck')" />
+        </ItemGroup>
+        <Copy SourceFiles="@(MirrorFiles)" DestinationFolder="$(GodotModsOutputDir)/" SkipUnchangedFiles="true" />
+        <Delete Files="$(GodotModsOutputDir)/mod_manifest.json" />
+    </Target>
+</Project>
