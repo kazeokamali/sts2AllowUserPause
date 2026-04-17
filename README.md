@@ -13,6 +13,10 @@
 - 弹窗 UI 在 [DeathDecisionPopup.cs](D:/Coding/sts2mods/sts2AllowUserPause/DeathDecisionPopup.cs:13)
 - 本地化文本位于 `localization/eng/main_menu_ui.json` 和 `localization/zhs/main_menu_ui.json`
 
+## 快速使用
+
+release中有打包好的文件，解压后放在mods目录即可
+
 ## 构建
 
 在仓库根目录执行：
