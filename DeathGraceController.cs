@@ -1,4 +1,4 @@
-using System.IO;
+using System;
 using System.Threading.Tasks;
 using Godot;
 using MegaCrit.Sts2.Core.Combat;
@@ -82,7 +82,7 @@ internal static class DeathGraceController
 
     public static void PrepareForMainMenuReturn()
     {
-        RestoreFloorStartSaveBeforeMenuReturn();
+        TryRestoreFloorStartSaveBeforeMenuReturn();
         CloseDecisionPopup();
         PendingDeathGrace = false;
         FinalizingDeathGrace = false;
@@ -324,6 +324,18 @@ internal static class DeathGraceController
         return null;
     }
 
+    private static void TryRestoreFloorStartSaveBeforeMenuReturn()
+    {
+        try
+        {
+            RestoreFloorStartSaveBeforeMenuReturn();
+        }
+        catch (Exception ex)
+        {
+            Log.Error($"[Sts2AllowUserPause] Failed to restore current_run.save before returning to the main menu: {ex}");
+        }
+    }
+
     private static void RestoreFloorStartSaveBeforeMenuReturn()
     {
         if (!PendingDeathGrace || FinalizingDeathGrace || string.IsNullOrWhiteSpace(CachedFloorStartSaveJson))
@@ -331,7 +343,7 @@ internal static class DeathGraceController
             return;
         }
 
-        string savePath = SaveManager.Instance.GetProfileScopedPath(Path.Combine(UserDataPathProvider.SavesDir, RunSaveManager.runSaveFileName));
+        string savePath = RunSaveManager.GetRunSavePath(SaveManager.Instance.CurrentProfileId, RunSaveManager.runSaveFileName);
         GodotFileIo fileIo = new(UserDataPathProvider.GetAccountScopedBasePath(null));
         fileIo.WriteFile(savePath, CachedFloorStartSaveJson);
         Log.Info("[Sts2AllowUserPause] Restored current_run.save to the floor-start snapshot before returning to the main menu.");
