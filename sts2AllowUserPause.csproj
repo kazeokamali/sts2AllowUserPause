@@ -6,6 +6,7 @@
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <NoWarn>$(NoWarn);STS002</NoWarn>
         <ModId Condition="'$(ModId)' == ''">sts2AllowUserPause</ModId>
+        <AssemblyName>$(ModId)</AssemblyName>
         <BuildPck Condition="'$(BuildPck)' == ''">true</BuildPck>
     </PropertyGroup>
 
@@ -24,14 +25,10 @@
         <LocalDevSteamInstallPath Condition="'$(LocalDevSteamInstallPath)' == ''">D:\SteamLibrary\steamapps\common\Slay the Spire 2</LocalDevSteamInstallPath>
         <SteamInstallPath Condition="'$(SteamInstallPath)' == '' and Exists('$(LocalDevSteamInstallPath)')">$(LocalDevSteamInstallPath)</SteamInstallPath>
         <SteamInstallPath Condition="'$(SteamInstallPath)' == ''">$(SteamLibraryPath)/common/Slay the Spire 2</SteamInstallPath>
-        <LocalDevSts2PathV0103 Condition="'$(LocalDevSts2PathV0103)' == ''">D:\2026\STS2\0.103</LocalDevSts2PathV0103>
-        <LocalDevSts2PathV0101 Condition="'$(LocalDevSts2PathV0101)' == ''">D:\2026\STS2\0.101</LocalDevSts2PathV0101>
-        <LocalDevSts2PathV099 Condition="'$(LocalDevSts2PathV099)' == ''">C:\BrowserDownload\CT\else\sts\v0.99</LocalDevSts2PathV099>
-        <LocalDevSts2PathLegacy Condition="'$(LocalDevSts2PathLegacy)' == ''">C:\BrowserDownload\CT\else\sts\Slay the Spire2</LocalDevSts2PathLegacy>
-        <Sts2Path Condition="'$(Sts2Path)' == '' and Exists('$(LocalDevSts2PathV0103)')">$(LocalDevSts2PathV0103)</Sts2Path>
-        <Sts2Path Condition="'$(Sts2Path)' == '' and Exists('$(LocalDevSts2PathV0101)')">$(LocalDevSts2PathV0101)</Sts2Path>
-        <Sts2Path Condition="'$(Sts2Path)' == '' and Exists('$(LocalDevSts2PathV099)')">$(LocalDevSts2PathV099)</Sts2Path>
-        <Sts2Path Condition="'$(Sts2Path)' == '' and Exists('$(LocalDevSts2PathLegacy)')">$(LocalDevSts2PathLegacy)</Sts2Path>
+        <LocalDevSts2PathV0113 Condition="'$(LocalDevSts2PathV0113)' == ''">D:\2026\STS2\0.113</LocalDevSts2PathV0113>
+        <LocalDevSts2PathV0104 Condition="'$(LocalDevSts2PathV0104)' == ''">D:\SteamLibrary\steamapps\common\Slay the Spire 2</LocalDevSts2PathV0104>
+        <Sts2Path Condition="'$(Sts2Path)' == '' and Exists('$(LocalDevSts2PathV0113)')">$(LocalDevSts2PathV0113)</Sts2Path>
+        <Sts2Path Condition="'$(Sts2Path)' == '' and Exists('$(LocalDevSts2PathV0104)/data_sts2_windows_x86_64/sts2.dll')">$(LocalDevSts2PathV0104)</Sts2Path>
         <Sts2Path Condition="'$(Sts2Path)' == ''">$(SteamInstallPath)</Sts2Path>
         <Sts2DataDir Condition="'$(Sts2DataDir)' == '' and Exists('$(Sts2Path)/data_sts2_windows_x86_64/sts2.dll')">$(Sts2Path)/data_sts2_windows_x86_64</Sts2DataDir>
         <Sts2DataDir Condition="'$(Sts2DataDir)' == '' and Exists('$(Sts2Path)/.godot/mono/temp/bin/Debug/sts2.dll')">$(Sts2Path)/.godot/mono/temp/bin/Debug</Sts2DataDir>
@@ -55,6 +52,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <Compile Remove="_tools\**\*.cs;.godot\**\*.cs" />
         <Reference Include="0Harmony">
             <HintPath>$(Sts2DataDir)/0Harmony.dll</HintPath>
         </Reference>

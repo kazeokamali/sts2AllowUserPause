@@ -1,10 +1,13 @@
 using System;
+using System.Reflection;
 using System.Threading.Tasks;
 using Godot;
 using MegaCrit.Sts2.Core.Combat;
+using MegaCrit.Sts2.Core.Entities.Save;
 using MegaCrit.Sts2.Core.Helpers;
 using MegaCrit.Sts2.Core.Logging;
 using MegaCrit.Sts2.Core.Multiplayer;
+using MegaCrit.Sts2.Core.Multiplayer.Game;
 using MegaCrit.Sts2.Core.Nodes;
 using MegaCrit.Sts2.Core.Nodes.CommonUi;
 using MegaCrit.Sts2.Core.Runs;
@@ -17,9 +20,7 @@ internal static class DeathGraceController
 {
     private sealed record HardPauseSnapshot(
         bool TreeWasPaused,
-        Node.ProcessModeEnum HotkeyManagerProcessMode,
-        bool CombatWasPaused,
-        bool ActionExecutorWasPaused);
+        Node.ProcessModeEnum HotkeyManagerProcessMode);
 
     private static HardPauseSnapshot? ActiveHardPause;
     private static bool PendingDeathGrace;
@@ -30,7 +31,7 @@ internal static class DeathGraceController
     private static bool IsSupportedRun()
     {
         RunManager? runManager = RunManager.Instance;
-        return runManager != null && runManager.IsInProgress && runManager.IsSinglePlayerOrFakeMultiplayer;
+        return runManager != null && runManager.IsInProgress && IsSingleplayerOrFakeMultiplayerCompat(runManager);
     }
 
     private static bool IsDeathGraceActive()
@@ -46,31 +47,41 @@ internal static class DeathGraceController
         }
 
         CaptureFloorStartSaveSnapshot();
-        if (!EnsureHardPauseStarted())
+        PendingDeathGrace = true;
+        Log.Info("[Sts2AllowUserPause] Death grace armed for the pending loss flow.");
+    }
+
+    public static void OpenDecisionPopupAfterPendingLoss()
+    {
+        if (!IsDeathGraceActive())
         {
-            CachedFloorStartSaveJson = null;
-            Log.Warn("[Sts2AllowUserPause] Failed to start the death grace hard pause. Allowing the normal loss flow.");
             return;
         }
 
-        PendingDeathGrace = true;
+        if (!EnsureHardPauseStarted())
+        {
+            Log.Warn("[Sts2AllowUserPause] Failed to start the death decision UI pause. Falling back to normal death resolution.");
+            EndHardPause(finalizePendingDeathGrace: true, resumeGameplay: false);
+            return;
+        }
 
-        // Abandon-run confirmation buttons clear the modal container in the same
-        // release callback that ultimately triggers this death-grace flow. Delay
-        // popup creation until those UI callbacks finish so the decision popup
-        // does not get cleared immediately after being added.
+        ShowDecisionPopup();
+
+        // Abandon-run confirmation buttons may clear the modal container in the
+        // same release callback that triggers this flow. Try again after those UI
+        // callbacks finish so the death decision popup can take over the screen.
         Callable.From(ShowDecisionPopup).CallDeferred();
         Log.Info("[Sts2AllowUserPause] Death grace window opened.");
     }
 
-    public static bool TryDeferRunEnd(bool isVictory, ref SerializableRun? serializableRun)
+    public static bool TryDeferRunEnd(bool isVictory, ref PostRunProgressUpdateResult result)
     {
         if (!IsSupportedRun() || !PendingDeathGrace || FinalizingDeathGrace || isVictory)
         {
             return false;
         }
 
-        serializableRun = RunManager.Instance.ToSave(null);
+        result = PostRunProgressUpdateResult.Unsuccessful(RunManager.Instance.ToSave(null));
         Log.Info("[Sts2AllowUserPause] Delayed RunManager.OnEnded(false) until the hard pause ends.");
         return true;
     }
@@ -115,16 +126,12 @@ internal static class DeathGraceController
 
         ActiveHardPause = new HardPauseSnapshot(
             TreeWasPaused: tree.Paused,
-            HotkeyManagerProcessMode: hotkeyManager.ProcessMode,
-            CombatWasPaused: CombatManager.Instance.IsPaused,
-            ActionExecutorWasPaused: RunManager.Instance.ActionExecutor.IsPaused);
+            HotkeyManagerProcessMode: hotkeyManager.ProcessMode);
 
         hotkeyManager.ProcessMode = Node.ProcessModeEnum.WhenPaused;
-        RunManager.Instance.ActionExecutor.Pause();
-        CombatManager.Instance.Pause();
         tree.Paused = true;
 
-        Log.Info("[Sts2AllowUserPause] Hard pause session started.");
+        Log.Info("[Sts2AllowUserPause] Death decision UI pause started.");
         return true;
     }
 
@@ -133,13 +140,18 @@ internal static class DeathGraceController
         HardPauseSnapshot? snapshot = ActiveHardPause;
         if (snapshot == null)
         {
+            if (finalizePendingDeathGrace && PendingDeathGrace)
+            {
+                FinalizePendingDeathGrace();
+            }
+
             return;
         }
 
         ActiveHardPause = null;
         RestoreHardPauseSnapshot(snapshot, resumeGameplay);
 
-        Log.Info("[Sts2AllowUserPause] Hard pause session ended.");
+        Log.Info("[Sts2AllowUserPause] Death decision UI pause ended.");
 
         if (finalizePendingDeathGrace && PendingDeathGrace)
         {
@@ -163,26 +175,7 @@ internal static class DeathGraceController
             tree.Paused = snapshot.TreeWasPaused;
         }
 
-        if (RunManager.Instance.IsInProgress)
-        {
-            if (!resumeGameplay || snapshot.ActionExecutorWasPaused)
-            {
-                RunManager.Instance.ActionExecutor.Pause();
-            }
-            else
-            {
-                RunManager.Instance.ActionExecutor.Unpause();
-            }
-        }
-
-        if (!resumeGameplay || snapshot.CombatWasPaused)
-        {
-            CombatManager.Instance.Pause();
-        }
-        else
-        {
-            CombatManager.Instance.Unpause();
-        }
+        _ = resumeGameplay;
     }
 
     private static void FinalizePendingDeathGrace()
@@ -197,8 +190,8 @@ internal static class DeathGraceController
 
         try
         {
-            SerializableRun serializableRun = RunManager.Instance.OnEnded(isVictory: false);
-            NRun.Instance.ShowGameOverScreen(serializableRun);
+            PostRunProgressUpdateResult result = RunManager.Instance.OnEnded(isVictory: false);
+            NRun.Instance.ShowGameOverScreen(result);
             Log.Info("[Sts2AllowUserPause] Finalized the delayed loss flow.");
         }
         finally
@@ -210,27 +203,35 @@ internal static class DeathGraceController
 
     private static void ShowDecisionPopup()
     {
-        if (!IsDeathGraceActive())
+        try
         {
-            return;
-        }
+            if (!IsDeathGraceActive())
+            {
+                return;
+            }
 
-        NModalContainer? modalContainer = NModalContainer.Instance;
-        if (ActiveDecisionPopup != null || modalContainer == null)
+            NModalContainer? modalContainer = NModalContainer.Instance;
+            if (ActiveDecisionPopup != null || modalContainer == null)
+            {
+                return;
+            }
+
+            // Abandon-run confirmation popups queue-free themselves without resetting
+            // the modal container state. Clear any leftover modal/backstop first so
+            // the death decision popup can always take over the screen.
+            modalContainer.Clear();
+            NRun.Instance?.GlobalUi.CapstoneContainer.DisableBackstopInstantly();
+
+            DeathDecisionPopup popup = DeathDecisionPopup.Create(ConfirmDeath, ReturnToFloorStart, ClearDecisionPopupReference);
+            ActiveDecisionPopup = popup;
+            modalContainer.Add(popup);
+            Log.Info("[Sts2AllowUserPause] Death decision popup displayed.");
+        }
+        catch (Exception ex)
         {
-            return;
+            Log.Error($"[Sts2AllowUserPause] Failed to display the death decision popup. Falling back to normal death resolution: {ex}");
+            EndHardPause(finalizePendingDeathGrace: true, resumeGameplay: false);
         }
-
-        // Abandon-run confirmation popups queue-free themselves without resetting
-        // the modal container state. Clear any leftover modal/backstop first so
-        // the death decision popup can always take over the screen.
-        modalContainer.Clear();
-        NRun.Instance?.GlobalUi.CapstoneContainer.DisableBackstopInstantly();
-
-        DeathDecisionPopup popup = DeathDecisionPopup.Create(ConfirmDeath, ReturnToFloorStart, ClearDecisionPopupReference);
-        ActiveDecisionPopup = popup;
-        modalContainer.Add(popup);
-        Log.Info("[Sts2AllowUserPause] Death decision popup displayed.");
     }
 
     private static void CloseDecisionPopup()
@@ -281,11 +282,75 @@ internal static class DeathGraceController
         await NGame.Instance.Transition.FadeOut(0.8f, runState.Players[0].Character.CharacterSelectTransitionPath);
         RunManager.Instance.CleanUp();
         NGame.Instance.ReactionContainer.InitializeNetworking(new NetSingleplayerGameService());
-        RunManager.Instance.SetUpSavedSinglePlayer(runState, serializableRun);
+        await SetUpSavedSinglePlayerCompat(runState, serializableRun);
         await NGame.Instance.LoadRun(runState, serializableRun.PreFinishedRoom);
         await NGame.Instance.Transition.FadeIn();
 
         Log.Info("[Sts2AllowUserPause] Returned to the start of the current floor using current_run.save.");
+    }
+
+    private static async Task SetUpSavedSinglePlayerCompat(RunState runState, SerializableRun serializableRun)
+    {
+        MethodInfo? setupMethod = FindRunManagerMethod(
+            "SetUpSavedSingleplayer",
+            "SetUpSavedSinglePlayer");
+        if (setupMethod == null)
+        {
+            throw new MissingMethodException(typeof(RunManager).FullName, "SetUpSavedSingleplayer");
+        }
+
+        object? result = setupMethod.Invoke(RunManager.Instance, new object[] { runState, serializableRun });
+
+        if (result is Task setupTask)
+        {
+            await setupTask;
+        }
+    }
+
+    private static bool IsSingleplayerOrFakeMultiplayerCompat(RunManager runManager)
+    {
+        if (TryGetBooleanProperty(runManager, "IsSingleplayerOrFakeMultiplayer", out bool isSingleplayer)
+            || TryGetBooleanProperty(runManager, "IsSinglePlayerOrFakeMultiplayer", out isSingleplayer))
+        {
+            return isSingleplayer;
+        }
+
+        return runManager.NetService.Type == NetGameType.Singleplayer;
+    }
+
+    private static bool TryGetBooleanProperty(object instance, string propertyName, out bool value)
+    {
+        value = false;
+        PropertyInfo? property = instance.GetType().GetProperty(
+            propertyName,
+            BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+        if (property == null || property.PropertyType != typeof(bool))
+        {
+            return false;
+        }
+
+        value = (bool)property.GetValue(instance)!;
+        return true;
+    }
+
+    private static MethodInfo? FindRunManagerMethod(params string[] methodNames)
+    {
+        Type[] parameterTypes = { typeof(RunState), typeof(SerializableRun) };
+        foreach (string methodName in methodNames)
+        {
+            MethodInfo? method = typeof(RunManager).GetMethod(
+                methodName,
+                BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
+                binder: null,
+                types: parameterTypes,
+                modifiers: null);
+            if (method != null)
+            {
+                return method;
+            }
+        }
+
+        return null;
     }
 
     private static void CaptureFloorStartSaveSnapshot()

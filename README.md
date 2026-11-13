@@ -1,6 +1,8 @@
-# sts2AllowUserPause 杀戮尖塔2防止死亡直接结算Mod
+# sts2AllowUserPause（死亡前暂停 / DeathGrace）
 
 一个用于 **Slay the Spire 2** 的小型 Mod。
+
+当前适配游戏版本：**v0.113**。Mod 文件名保持稳定，不包含游戏版本号。
 
 它会在玩家即将死亡时弹出一个决策页面，避免游戏直接结算，让玩家可以选择：
 
@@ -9,13 +11,15 @@
 
 ## 项目说明
 
-- 主要逻辑在 [DeathGraceController.cs](D:/Coding/sts2mods/sts2AllowUserPause/DeathGraceController.cs:16)
-- 弹窗 UI 在 [DeathDecisionPopup.cs](D:/Coding/sts2mods/sts2AllowUserPause/DeathDecisionPopup.cs:13)
+- 主要逻辑在 [DeathGraceController.cs](DeathGraceController.cs)
+- 弹窗 UI 在 [DeathDecisionPopup.cs](DeathDecisionPopup.cs)
 - 本地化文本位于 `localization/eng/main_menu_ui.json` 和 `localization/zhs/main_menu_ui.json`
 
 ## 快速使用
 
-release中有打包好的文件，解压后放在mods目录即可
+从 [Releases](https://github.com/kazeokamali/sts2AllowUserPause/releases/latest) 下载 `sts2AllowUserPause.zip`，将其中的 DLL、JSON 和 PCK 放入游戏的 `mods/sts2AllowUserPause` 目录。也可以通过 [Steam 创意工坊](https://steamcommunity.com/sharedfiles/filedetails/?id=3747572624)订阅。
+
+曾手动安装 `sts2AllowUserPause_v0.107` 的玩家，请先将旧目录移出 `mods`，避免新旧两个 ID 同时加载。只通过工坊订阅的玩家无需退订重订。
 
 ## 构建
 

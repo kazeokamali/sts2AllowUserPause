@@ -1,5 +1,7 @@
 using HarmonyLib;
 using MegaCrit.Sts2.Core.Combat;
+using MegaCrit.Sts2.Core.Entities.Save;
+using MegaCrit.Sts2.Core.Logging;
 using MegaCrit.Sts2.Core.Nodes;
 using MegaCrit.Sts2.Core.Runs;
 using MegaCrit.Sts2.Core.Saves;
@@ -16,18 +18,18 @@ public static class DeathGracePatches
         DeathGraceController.BeginDeathGrace();
     }
 
+    [HarmonyPatch(typeof(CombatManager), "ProcessPendingLoss")]
+    [HarmonyPostfix]
+    public static void ProcessPendingLossPostfix()
+    {
+        DeathGraceController.OpenDecisionPopupAfterPendingLoss();
+    }
+
     [HarmonyPatch(typeof(RunManager), nameof(RunManager.OnEnded))]
     [HarmonyPrefix]
-    public static bool RunEndedPrefix(bool isVictory, ref SerializableRun __result)
+    public static bool RunEndedPrefix(bool isVictory, ref PostRunProgressUpdateResult __result)
     {
-        SerializableRun? replacement = __result;
-        if (!DeathGraceController.TryDeferRunEnd(isVictory, ref replacement) || replacement == null)
-        {
-            return true;
-        }
-
-        __result = replacement;
-        return false;
+        return !DeathGraceController.TryDeferRunEnd(isVictory, ref __result);
     }
 
     [HarmonyPatch(typeof(NRun), nameof(NRun.ShowGameOverScreen))]
@@ -42,6 +44,19 @@ public static class DeathGracePatches
     public static void ReturnToMainMenuPrefix()
     {
         DeathGraceController.PrepareForMainMenuReturn();
+    }
+
+    [HarmonyPatch(typeof(NGame), nameof(NGame.StartNewSingleplayerRun))]
+    [HarmonyPrefix]
+    public static void StartNewSingleplayerRunPrefix()
+    {
+        if (!RunManager.Instance.IsInProgress)
+        {
+            return;
+        }
+
+        Log.Warn("[Sts2AllowUserPause] Clearing stale run state before starting a new singleplayer run.");
+        RunManager.Instance.CleanUp();
     }
 
     [HarmonyPatch(typeof(RunManager), nameof(RunManager.CleanUp))]
