@@ -1,6 +1,5 @@
 using HarmonyLib;
 using MegaCrit.Sts2.Core.Combat;
-using MegaCrit.Sts2.Core.Entities.Save;
 using MegaCrit.Sts2.Core.Logging;
 using MegaCrit.Sts2.Core.Nodes;
 using MegaCrit.Sts2.Core.Runs;
@@ -27,9 +26,9 @@ public static class DeathGracePatches
 
     [HarmonyPatch(typeof(RunManager), nameof(RunManager.OnEnded))]
     [HarmonyPrefix]
-    public static bool RunEndedPrefix(bool isVictory, ref PostRunProgressUpdateResult __result)
+    public static bool RunEndedPrefix(bool isVictory)
     {
-        return !DeathGraceController.TryDeferRunEnd(isVictory, ref __result);
+        return !DeathGraceController.TryDeferRunEnd(isVictory);
     }
 
     [HarmonyPatch(typeof(NRun), nameof(NRun.ShowGameOverScreen))]

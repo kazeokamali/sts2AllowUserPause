@@ -2,7 +2,7 @@
 
 一个用于 **Slay the Spire 2** 的小型 Mod。
 
-当前适配游戏版本：**v0.113**。Mod 文件名保持稳定，不包含游戏版本号。
+当前适配游戏版本：**正式版 v0.111.1、beta 测试版 v0.113.1**。同一个 Mod 包会自动选择对应接口；文件名保持稳定，不包含游戏版本号。
 
 它会在玩家即将死亡时弹出一个决策页面，避免游戏直接结算，让玩家可以选择：
 
@@ -12,6 +12,7 @@
 ## 项目说明
 
 - 主要逻辑在 [DeathGraceController.cs](DeathGraceController.cs)
+- 双分支接口适配在 [GameCompatibility.cs](GameCompatibility.cs)
 - 弹窗 UI 在 [DeathDecisionPopup.cs](DeathDecisionPopup.cs)
 - 本地化文本位于 `localization/eng/main_menu_ui.json` 和 `localization/zhs/main_menu_ui.json`
 

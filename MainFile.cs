@@ -24,14 +24,23 @@ public static class MainFile
             return;
         }
 
-        _initialized = true;
         Log.Info("[Sts2AllowUserPause] Bootstrap start.");
         Log.Info($"[Sts2AllowUserPause] Runtime: {RuntimeInformation.FrameworkDescription}, CLR={Environment.Version}");
         Assembly harmonyAssembly = typeof(Harmony).Assembly;
         Log.Info($"[Sts2AllowUserPause] Harmony assembly: {harmonyAssembly.Location} v{harmonyAssembly.GetName().Version}");
 
-        _harmony ??= new Harmony(HarmonyId);
-        _harmony.PatchAll();
+        try
+        {
+            GameCompatibility.Initialize();
+            _harmony ??= new Harmony(HarmonyId);
+            _harmony.PatchAll();
+            _initialized = true;
+        }
+        catch (Exception ex)
+        {
+            Log.Error($"[Sts2AllowUserPause] Unsupported game API; death grace was not installed: {ex}");
+            return;
+        }
 
         Log.Info("[Sts2AllowUserPause] Mod initialized.");
     }

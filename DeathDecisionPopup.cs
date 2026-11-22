@@ -228,10 +228,10 @@ public partial class DeathDecisionPopup : Control, IScreenContext
         }
 
         hotkeyManager.AddBlockingScreen(this);
-        hotkeyManager.PushHotkeyPressedBinding(MegaInput.confirm, TriggerConfirm);
-        hotkeyManager.PushHotkeyPressedBinding(MegaInput.select, TriggerConfirm);
-        hotkeyManager.PushHotkeyPressedBinding(MegaInput.cancel, TriggerReturnToFloorStart);
-        hotkeyManager.PushHotkeyPressedBinding(MegaInput.pauseAndBack, TriggerReturnToFloorStart);
+        GameCompatibility.PushHotkey(hotkeyManager, MegaInput.confirm, TriggerConfirm);
+        GameCompatibility.PushHotkey(hotkeyManager, MegaInput.select, TriggerConfirm);
+        GameCompatibility.PushHotkey(hotkeyManager, MegaInput.cancel, TriggerReturnToFloorStart);
+        GameCompatibility.PushHotkey(hotkeyManager, MegaInput.pauseAndBack, TriggerReturnToFloorStart);
         _hotkeysRegistered = true;
     }
 
@@ -243,10 +243,10 @@ public partial class DeathDecisionPopup : Control, IScreenContext
             return;
         }
 
-        hotkeyManager.RemoveHotkeyPressedBinding(MegaInput.confirm, TriggerConfirm);
-        hotkeyManager.RemoveHotkeyPressedBinding(MegaInput.select, TriggerConfirm);
-        hotkeyManager.RemoveHotkeyPressedBinding(MegaInput.cancel, TriggerReturnToFloorStart);
-        hotkeyManager.RemoveHotkeyPressedBinding(MegaInput.pauseAndBack, TriggerReturnToFloorStart);
+        GameCompatibility.RemoveHotkey(hotkeyManager, MegaInput.confirm, TriggerConfirm);
+        GameCompatibility.RemoveHotkey(hotkeyManager, MegaInput.select, TriggerConfirm);
+        GameCompatibility.RemoveHotkey(hotkeyManager, MegaInput.cancel, TriggerReturnToFloorStart);
+        GameCompatibility.RemoveHotkey(hotkeyManager, MegaInput.pauseAndBack, TriggerReturnToFloorStart);
         hotkeyManager.RemoveBlockingScreen(this);
         _hotkeysRegistered = false;
     }
@@ -310,6 +310,12 @@ public partial class DeathDecisionPopup : Control, IScreenContext
         }
 
         return texture;
+    }
+
+    private static Texture2D? LoadOutlineTexture(string resourcePath)
+    {
+        string fallbackPath = resourcePath.Replace("compressed_atlas.sprites", "compressed.sprites");
+        return LoadTexture(ResourceLoader.Exists(resourcePath) ? resourcePath : fallbackPath);
     }
 
     private static Font? LoadFont(string resourcePath)
@@ -427,7 +433,7 @@ public partial class DeathDecisionPopup : Control, IScreenContext
                 SelfModulate = Colors.Black,
                 ShowBehindParent = isYes,
                 Material = _outlineMaterial,
-                Texture = LoadTexture(outlineTexturePath),
+                Texture = LoadOutlineTexture(outlineTexturePath),
                 ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
                 StretchMode = TextureRect.StretchModeEnum.KeepAspect,
                 MouseFilter = MouseFilterEnum.Ignore,

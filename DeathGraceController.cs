@@ -3,7 +3,6 @@ using System.Reflection;
 using System.Threading.Tasks;
 using Godot;
 using MegaCrit.Sts2.Core.Combat;
-using MegaCrit.Sts2.Core.Entities.Save;
 using MegaCrit.Sts2.Core.Helpers;
 using MegaCrit.Sts2.Core.Logging;
 using MegaCrit.Sts2.Core.Multiplayer;
@@ -74,14 +73,13 @@ internal static class DeathGraceController
         Log.Info("[Sts2AllowUserPause] Death grace window opened.");
     }
 
-    public static bool TryDeferRunEnd(bool isVictory, ref PostRunProgressUpdateResult result)
+    public static bool TryDeferRunEnd(bool isVictory)
     {
         if (!IsSupportedRun() || !PendingDeathGrace || FinalizingDeathGrace || isVictory)
         {
             return false;
         }
 
-        result = PostRunProgressUpdateResult.Unsuccessful(RunManager.Instance.ToSave(null));
         Log.Info("[Sts2AllowUserPause] Delayed RunManager.OnEnded(false) until the hard pause ends.");
         return true;
     }
@@ -190,8 +188,7 @@ internal static class DeathGraceController
 
         try
         {
-            PostRunProgressUpdateResult result = RunManager.Instance.OnEnded(isVictory: false);
-            NRun.Instance.ShowGameOverScreen(result);
+            GameCompatibility.FinishDeath();
             Log.Info("[Sts2AllowUserPause] Finalized the delayed loss flow.");
         }
         finally
